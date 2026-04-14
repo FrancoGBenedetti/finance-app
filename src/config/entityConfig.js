@@ -1,0 +1,109 @@
+/**
+ * ENTITY_CONFIG — fuente de verdad para toda la UI relacionada a entidades.
+ *
+ * Tipos disponibles:
+ *   income    → Ingreso: dinero disponible
+ *   expense   → Gasto: categoría acumuladora (moves money via Transactions)
+ *   credit    → Crédito: tarjeta / línea de crédito
+ *   portfolio → Portafolio: agrupa ingresos y muestra su suma (solo lectura calculada)
+ *   savings   → Ahorro: monto asignado manualmente por el usuario
+ */
+
+export const ENTITY_TYPES = ['income', 'expense', 'credit', 'portfolio', 'savings']
+
+export const ENTITY_CONFIG = {
+  income: {
+    label: 'Ingreso',
+    description: 'Dinero disponible',
+    icon: '💰',
+    badgeClass: 'bg-emerald-900/60 text-emerald-300 border border-emerald-800',
+    buttonClass:
+      'bg-emerald-950 border border-emerald-800 hover:border-emerald-500 hover:bg-emerald-900/40 transition-colors',
+    fields: [
+      { key: 'title',  label: 'Título', type: 'text',   placeholder: 'ej: Sueldo',   required: true },
+      { key: 'amount', label: 'Monto',  type: 'number', placeholder: '0', required: true, min: 0, step: 1 },
+    ],
+  },
+
+  expense: {
+    label: 'Gasto',
+    description: 'Categoría acumuladora',
+    icon: '💸',
+    badgeClass: 'bg-red-900/60 text-red-300 border border-red-800',
+    buttonClass:
+      'bg-red-950 border border-red-800 hover:border-red-500 hover:bg-red-900/40 transition-colors',
+    fields: [
+      { key: 'title',  label: 'Título',        type: 'text',   placeholder: 'ej: Restaurantes', required: true },
+      {
+        key: 'budget',
+        label: 'Presupuesto',
+        type: 'number',
+        placeholder: '0',
+        required: false,
+        min: 0,
+        step: 1,
+        hint: 'Opcional. Define un límite máximo para esta categoría.',
+      },
+    ],
+  },
+
+  credit: {
+    label: 'Crédito',
+    description: 'Tarjeta o línea de crédito',
+    icon: '💳',
+    badgeClass: 'bg-orange-900/60 text-orange-300 border border-orange-800',
+    buttonClass:
+      'bg-orange-950 border border-orange-800 hover:border-orange-500 hover:bg-orange-900/40 transition-colors',
+    fields: [
+      { key: 'title', label: 'Título',           type: 'text',   placeholder: 'ej: Tarjeta Visa', required: true },
+      { key: 'limit', label: 'Límite de crédito', type: 'number', placeholder: '0', required: true, min: 1, step: 1 },
+    ],
+  },
+
+  portfolio: {
+    label: 'Portafolio',
+    description: 'Suma de ingresos seleccionados',
+    icon: '📊',
+    badgeClass: 'bg-purple-900/60 text-purple-300 border border-purple-800',
+    buttonClass:
+      'bg-purple-950 border border-purple-800 hover:border-purple-500 hover:bg-purple-900/40 transition-colors',
+    fields: [
+      {
+        key: 'title',
+        label: 'Título',
+        type: 'text',
+        placeholder: 'ej: Ingresos fijos',
+        required: true,
+      },
+      {
+        key: 'linkedIncomeIds',
+        label: 'Ingresos a agrupar',
+        type: 'income-multiselect',
+        defaultValue: [],
+        hint: 'El total del portafolio es la suma de los montos disponibles de los ingresos seleccionados.',
+      },
+    ],
+  },
+
+  savings: {
+    label: 'Ahorro',
+    description: 'Monto asignado manualmente',
+    icon: '🐷',
+    badgeClass: 'bg-blue-900/60 text-blue-300 border border-blue-800',
+    buttonClass:
+      'bg-blue-950 border border-blue-800 hover:border-blue-500 hover:bg-blue-900/40 transition-colors',
+    fields: [
+      { key: 'title',  label: 'Título', type: 'text',   placeholder: 'ej: Fondo de emergencia', required: true },
+      {
+        key: 'amount',
+        label: 'Monto ahorrado',
+        type: 'number',
+        placeholder: '0',
+        required: true,
+        min: 0,
+        step: 1,
+        hint: 'Ingresa manualmente cuánto tienes ahorrado en esta categoría.',
+      },
+    ],
+  },
+}

@@ -1,12 +1,14 @@
+import { useState } from 'react'
 import { useDerivedTotals } from '../../hooks/useDerivedTotals.js'
 import { useFinanceStore } from '../../store/useFinanceStore.js'
-import { formatCurrency } from '../../utils/financialRules.js'
+import { formatCurrencyCLP } from '../../utils/financialRules.js'
+import EntityModal from '../shared/EntityModal.jsx'
 
 function StatBlock({ label, value, valueColor = 'text-white' }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-xs text-gray-400 uppercase tracking-wider">{label}</span>
-      <span className={`text-xl font-semibold tabular-nums ${valueColor}`}>{value}</span>
+    <div className="flex flex-col gap-0.5 min-w-[100px]">
+      <span className="text-xs text-gray-500 uppercase tracking-wider">{label}</span>
+      <span className={`text-lg font-semibold tabular-nums ${valueColor}`}>{value}</span>
     </div>
   )
 }
@@ -14,61 +16,82 @@ function StatBlock({ label, value, valueColor = 'text-white' }) {
 export default function Header() {
   const { totalAvailableIncome, totalSpent, totalDebt, totalSavings } = useDerivedTotals()
   const { activeView, setActiveView } = useFinanceStore()
+  const [createOpen, setCreateOpen] = useState(false)
 
   return (
-    <header className="sticky top-0 z-10 bg-gray-950 border-b border-gray-800 px-6 py-4">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-6 flex-wrap">
-        {/* Brand */}
-        <span className="text-lg font-bold text-emerald-400 tracking-tight">moneybox</span>
+    <>
+      <header className="sticky top-0 z-10 bg-gray-950/95 backdrop-blur border-b border-gray-800/80 px-4 sm:px-6 py-3">
+        <div className="max-w-7xl mx-auto flex items-center gap-4 flex-wrap">
 
-        {/* Stats */}
-        <div className="flex items-center gap-8 flex-wrap">
-          <StatBlock
-            label="Available"
-            value={formatCurrency(totalAvailableIncome)}
-            valueColor="text-emerald-400"
-          />
-          <StatBlock
-            label="Spent"
-            value={formatCurrency(totalSpent)}
-            valueColor="text-red-400"
-          />
-          <StatBlock
-            label="Debt"
-            value={formatCurrency(totalDebt)}
-            valueColor="text-orange-400"
-          />
-          <StatBlock
-            label="Savings"
-            value={formatCurrency(totalSavings)}
-            valueColor="text-blue-400"
-          />
-        </div>
+          {/* Brand */}
+          <span className="text-base font-bold text-emerald-400 tracking-tight shrink-0">
+            moneybox
+          </span>
 
-        {/* View toggle */}
-        <div className="flex rounded-lg overflow-hidden border border-gray-700 text-sm">
-          <button
-            onClick={() => setActiveView('table')}
-            className={`px-4 py-1.5 transition-colors ${
-              activeView === 'table'
-                ? 'bg-gray-700 text-white'
-                : 'bg-transparent text-gray-400 hover:text-white'
-            }`}
-          >
-            Table
-          </button>
-          <button
-            onClick={() => setActiveView('cards')}
-            className={`px-4 py-1.5 transition-colors ${
-              activeView === 'cards'
-                ? 'bg-gray-700 text-white'
-                : 'bg-transparent text-gray-400 hover:text-white'
-            }`}
-          >
-            Cards
-          </button>
+          {/* Stats */}
+          <div className="flex items-center gap-5 flex-wrap flex-1 min-w-0">
+            <StatBlock
+              label="Disponible"
+              value={formatCurrencyCLP(totalAvailableIncome)}
+              valueColor="text-emerald-400"
+            />
+            <StatBlock
+              label="Gastado"
+              value={formatCurrencyCLP(totalSpent)}
+              valueColor="text-red-400"
+            />
+            <StatBlock
+              label="Deuda"
+              value={formatCurrencyCLP(totalDebt)}
+              valueColor="text-orange-400"
+            />
+            <StatBlock
+              label="Ahorros"
+              value={formatCurrencyCLP(totalSavings)}
+              valueColor="text-blue-400"
+            />
+          </div>
+
+          {/* Right controls */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* View toggle */}
+            <div className="flex rounded-lg overflow-hidden border border-gray-700 text-sm">
+              <button
+                onClick={() => setActiveView('table')}
+                className={`px-3 py-1.5 transition-colors ${
+                  activeView === 'table'
+                    ? 'bg-gray-700 text-white'
+                    : 'bg-transparent text-gray-500 hover:text-white'
+                }`}
+              >
+                Tabla
+              </button>
+              <button
+                onClick={() => setActiveView('cards')}
+                className={`px-3 py-1.5 transition-colors ${
+                  activeView === 'cards'
+                    ? 'bg-gray-700 text-white'
+                    : 'bg-transparent text-gray-500 hover:text-white'
+                }`}
+              >
+                Cards
+              </button>
+            </div>
+
+            {/* Create button */}
+            <button
+              onClick={() => setCreateOpen(true)}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
+            >
+              + Crear
+            </button>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {createOpen && (
+        <EntityModal onClose={() => setCreateOpen(false)} />
+      )}
+    </>
   )
 }

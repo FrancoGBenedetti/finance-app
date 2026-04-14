@@ -1,5 +1,5 @@
 import { useFinanceStore } from '../../store/useFinanceStore.js'
-import { formatCurrency } from '../../utils/financialRules.js'
+import { formatCurrencyCLP } from '../../utils/financialRules.js'
 
 export default function SourceSelector({ sourceId, sourceType, onChange }) {
   const incomes = useFinanceStore((s) => s.incomes)
@@ -22,18 +22,18 @@ export default function SourceSelector({ sourceId, sourceType, onChange }) {
       onChange={handleChange}
       className="bg-gray-800 border border-gray-700 text-gray-100 text-sm rounded-lg px-3 py-2 w-full focus:outline-none focus:border-emerald-500"
     >
-      <option value="">— Select source —</option>
-      <optgroup label="Incomes">
+      <option value="">— Seleccionar fuente —</option>
+      <optgroup label="Ingresos">
         {incomes.map((i) => (
           <option key={i.id} value={`income:${i.id}`}>
-            {i.title} ({formatCurrency(i.amount)} available)
+            {i.title} ({formatCurrencyCLP(i.amount)} disponible)
           </option>
         ))}
       </optgroup>
-      <optgroup label="Credits">
+      <optgroup label="Créditos">
         {credits.map((c) => (
           <option key={c.id} value={`credit:${c.id}`}>
-            {c.title} ({formatCurrency(c.available)} available)
+            {c.title} ({formatCurrencyCLP(c.available)} disponible)
           </option>
         ))}
       </optgroup>

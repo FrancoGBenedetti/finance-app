@@ -1,22 +1,19 @@
 import { db } from '../firebase/config.js'
-import {
-  writeBatch,
-  doc,
-  collection,
-  serverTimestamp,
-} from 'firebase/firestore'
+import { writeBatch, doc, collection, serverTimestamp } from 'firebase/firestore'
 import { useFinanceStore } from '../store/useFinanceStore.js'
 import {
-  validateExpense,
-  validateExpenseUpdate,
   validateIncome,
   validateCredit,
+  validateExpense,
+  validatePortfolio,
   validateSavings,
-  computeExpenseSideEffects,
-  computeExpenseUpdateSideEffects,
-  computeExpenseDeleteReversal,
+  validateTransaction,
+  computeTransactionSideEffects,
+  computeTransactionReversal,
+  computeExpenseDeleteReversals,
 } from '../utils/financialRules.js'
 
+// ─── Shared batch helper ──────────────────────────────────────────────────────
 function applySourceUpdate(batch, sideEffect) {
   if (!sideEffect) return
   if (sideEffect.type === 'income') {
@@ -29,12 +26,14 @@ function applySourceUpdate(batch, sideEffect) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+
 export function useTransactions() {
-  // ─── Incomes ────────────────────────────────────────────────────────────────
+
+  // ── Incomes ────────────────────────────────────────────────────────────────
   async function addIncome(data) {
     const error = validateIncome(data)
     if (error) throw new Error(error)
-
     const ref = doc(collection(db, 'incomes'))
     const batch = writeBatch(db)
     batch.set(ref, {
@@ -50,41 +49,28 @@ export function useTransactions() {
   async function updateIncome(id, data) {
     const error = validateIncome(data)
     if (error) throw new Error(error)
-
     const batch = writeBatch(db)
-    batch.update(doc(db, 'incomes', id), {
-      title: data.title,
-      amount: Number(data.amount),
-    })
+    batch.update(doc(db, 'incomes', id), { title: data.title, amount: Number(data.amount) })
     await batch.commit()
   }
 
   async function removeIncome(id) {
-    // Check if any expense uses this income
-    const { expenses } = useFinanceStore.getState()
-    const linked = expenses.filter((e) => e.sourceId === id && e.sourceType === 'income')
-    if (linked.length > 0) throw new Error('Cannot delete income that has linked expenses')
-
+    const { transactions } = useFinanceStore.getState()
+    if (transactions.some((t) => t.sourceId === id && t.sourceType === 'income'))
+      throw new Error('No se puede eliminar un ingreso que tiene transacciones vinculadas')
     const batch = writeBatch(db)
     batch.delete(doc(db, 'incomes', id))
     await batch.commit()
   }
 
-  // ─── Credits ────────────────────────────────────────────────────────────────
+  // ── Credits ────────────────────────────────────────────────────────────────
   async function addCredit(data) {
     const error = validateCredit(data)
     if (error) throw new Error(error)
-
     const limit = Number(data.limit)
     const ref = doc(collection(db, 'credits'))
     const batch = writeBatch(db)
-    batch.set(ref, {
-      title: data.title,
-      limit,
-      used: 0,
-      available: limit,
-      createdAt: serverTimestamp(),
-    })
+    batch.set(ref, { title: data.title, limit, used: 0, available: limit, createdAt: serverTimestamp() })
     await batch.commit()
     return ref.id
   }
@@ -92,101 +78,146 @@ export function useTransactions() {
   async function updateCredit(id, data) {
     const error = validateCredit(data)
     if (error) throw new Error(error)
-
     const { credits } = useFinanceStore.getState()
     const existing = credits.find((c) => c.id === id)
     const newLimit = Number(data.limit)
-    const used = existing?.used ?? 0
-    const available = newLimit - used
-
     const batch = writeBatch(db)
     batch.update(doc(db, 'credits', id), {
       title: data.title,
       limit: newLimit,
-      available,
+      available: newLimit - (existing?.used ?? 0),
     })
     await batch.commit()
   }
 
   async function removeCredit(id) {
-    const { expenses } = useFinanceStore.getState()
-    const linked = expenses.filter((e) => e.sourceId === id && e.sourceType === 'credit')
-    if (linked.length > 0) throw new Error('Cannot delete credit that has linked expenses')
-
+    const { transactions } = useFinanceStore.getState()
+    if (transactions.some((t) => t.sourceId === id && t.sourceType === 'credit'))
+      throw new Error('No se puede eliminar un crédito que tiene transacciones vinculadas')
     const batch = writeBatch(db)
     batch.delete(doc(db, 'credits', id))
     await batch.commit()
   }
 
-  // ─── Expenses ───────────────────────────────────────────────────────────────
+  // ── Expenses ───────────────────────────────────────────────────────────────
   async function addExpense(data) {
-    const { incomes, credits } = useFinanceStore.getState()
-    const payload = { ...data, spent: Number(data.spent), budget: Number(data.budget ?? 0) }
-
-    const error = validateExpense(payload, incomes, credits)
+    const error = validateExpense(data)
     if (error) throw new Error(error)
-
-    const sideEffect = computeExpenseSideEffects(payload, incomes, credits)
-
     const ref = doc(collection(db, 'expenses'))
     const batch = writeBatch(db)
     batch.set(ref, {
-      title: payload.title,
-      spent: payload.spent,
-      budget: payload.budget,
-      sourceId: payload.sourceId,
-      sourceType: payload.sourceType,
+      title: data.title,
+      budget: Number(data.budget ?? 0),
+      totalSpent: 0,
       createdAt: serverTimestamp(),
     })
-    applySourceUpdate(batch, sideEffect)
     await batch.commit()
     return ref.id
   }
 
-  async function updateExpense(id, newData) {
-    const { incomes, credits, expenses } = useFinanceStore.getState()
-    const oldExpense = expenses.find((e) => e.id === id)
-    if (!oldExpense) throw new Error('Expense not found')
-
-    const newSpent = Number(newData.spent ?? oldExpense.spent)
-    const error = validateExpenseUpdate(oldExpense, newSpent, incomes, credits)
+  async function updateExpense(id, data) {
+    const error = validateExpense(data)
     if (error) throw new Error(error)
-
-    const sideEffect = computeExpenseUpdateSideEffects(oldExpense, newSpent, incomes, credits)
-
     const batch = writeBatch(db)
-    batch.update(doc(db, 'expenses', id), {
-      title: newData.title ?? oldExpense.title,
-      spent: newSpent,
-      budget: Number(newData.budget ?? oldExpense.budget),
-    })
-    applySourceUpdate(batch, sideEffect)
+    batch.update(doc(db, 'expenses', id), { title: data.title, budget: Number(data.budget ?? 0) })
     await batch.commit()
   }
 
   async function removeExpense(id) {
-    const { incomes, credits, expenses } = useFinanceStore.getState()
-    const expense = expenses.find((e) => e.id === id)
-    if (!expense) throw new Error('Expense not found')
-
-    const reversal = computeExpenseDeleteReversal(expense, incomes, credits)
-
+    const { incomes, credits, transactions } = useFinanceStore.getState()
+    const expenseTransactions = transactions.filter((t) => t.expenseId === id)
+    const reversals = computeExpenseDeleteReversals(expenseTransactions, incomes, credits)
     const batch = writeBatch(db)
     batch.delete(doc(db, 'expenses', id))
+    expenseTransactions.forEach((t) => batch.delete(doc(db, 'transactions', t.id)))
+    reversals.forEach((r) => applySourceUpdate(batch, r))
+    await batch.commit()
+  }
+
+  // ── Transactions ───────────────────────────────────────────────────────────
+  async function addTransaction(data) {
+    const { incomes, credits, expenses } = useFinanceStore.getState()
+    const expense = expenses.find((e) => e.id === data.expenseId)
+    if (!expense) throw new Error('Gasto no encontrado')
+    const payload = { ...data, amount: Number(data.amount) }
+    const error = validateTransaction(payload, incomes, credits)
+    if (error) throw new Error(error)
+    const sideEffect = computeTransactionSideEffects(payload, incomes, credits)
+    const transRef = doc(collection(db, 'transactions'))
+    const batch = writeBatch(db)
+    batch.set(transRef, {
+      expenseId: payload.expenseId,
+      amount: payload.amount,
+      sourceId: payload.sourceId,
+      sourceType: payload.sourceType,
+      createdAt: serverTimestamp(),
+    })
+    batch.update(doc(db, 'expenses', expense.id), {
+      totalSpent: (expense.totalSpent ?? 0) + payload.amount,
+    })
+    applySourceUpdate(batch, sideEffect)
+    await batch.commit()
+    return transRef.id
+  }
+
+  async function removeTransaction(id) {
+    const { incomes, credits, transactions, expenses } = useFinanceStore.getState()
+    const transaction = transactions.find((t) => t.id === id)
+    if (!transaction) throw new Error('Transacción no encontrada')
+    const expense = expenses.find((e) => e.id === transaction.expenseId)
+    const reversal = computeTransactionReversal(transaction, incomes, credits)
+    const batch = writeBatch(db)
+    batch.delete(doc(db, 'transactions', id))
+    if (expense) {
+      batch.update(doc(db, 'expenses', expense.id), {
+        totalSpent: Math.max(0, (expense.totalSpent ?? 0) - (transaction.amount ?? 0)),
+      })
+    }
     applySourceUpdate(batch, reversal)
     await batch.commit()
   }
 
-  // ─── Savings ────────────────────────────────────────────────────────────────
-  async function addSavings(data) {
-    const error = validateSavings(data)
+  // ── Portfolios (agrupa ingresos, sin mover dinero) ─────────────────────────
+  async function addPortfolio(data) {
+    const error = validatePortfolio(data)
     if (error) throw new Error(error)
-
-    const ref = doc(collection(db, 'savings'))
+    const ref = doc(collection(db, 'portfolios'))
     const batch = writeBatch(db)
     batch.set(ref, {
       title: data.title,
       linkedIncomeIds: data.linkedIncomeIds ?? [],
+      createdAt: serverTimestamp(),
+    })
+    await batch.commit()
+    return ref.id
+  }
+
+  async function updatePortfolio(id, data) {
+    const error = validatePortfolio(data)
+    if (error) throw new Error(error)
+    const batch = writeBatch(db)
+    batch.update(doc(db, 'portfolios', id), {
+      title: data.title,
+      linkedIncomeIds: data.linkedIncomeIds ?? [],
+    })
+    await batch.commit()
+  }
+
+  async function removePortfolio(id) {
+    const batch = writeBatch(db)
+    batch.delete(doc(db, 'portfolios', id))
+    await batch.commit()
+  }
+
+  // ── Savings (monto manual, sin side-effects) ───────────────────────────────
+  async function addSavings(data) {
+    const error = validateSavings(data)
+    if (error) throw new Error(error)
+    const ref = doc(collection(db, 'savings'))
+    const batch = writeBatch(db)
+    batch.set(ref, {
+      title: data.title,
+      amount: Number(data.amount),
       createdAt: serverTimestamp(),
     })
     await batch.commit()
@@ -196,11 +227,10 @@ export function useTransactions() {
   async function updateSavings(id, data) {
     const error = validateSavings(data)
     if (error) throw new Error(error)
-
     const batch = writeBatch(db)
     batch.update(doc(db, 'savings', id), {
       title: data.title,
-      linkedIncomeIds: data.linkedIncomeIds ?? [],
+      amount: Number(data.amount),
     })
     await batch.commit()
   }
@@ -212,9 +242,11 @@ export function useTransactions() {
   }
 
   return {
-    addIncome, updateIncome, removeIncome,
-    addCredit, updateCredit, removeCredit,
-    addExpense, updateExpense, removeExpense,
-    addSavings, updateSavings, removeSavings,
+    addIncome,      updateIncome,     removeIncome,
+    addCredit,      updateCredit,     removeCredit,
+    addExpense,     updateExpense,    removeExpense,
+    addTransaction,                   removeTransaction,
+    addPortfolio,   updatePortfolio,  removePortfolio,
+    addSavings,     updateSavings,    removeSavings,
   }
 }

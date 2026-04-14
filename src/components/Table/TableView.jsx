@@ -1,69 +1,75 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useFinanceStore } from '../../store/useFinanceStore.js'
-import TableRow from './TableRow.jsx'
-import AddRowButton from './AddRowButton.jsx'
-import AddEntityModal from '../Form/AddEntityModal.jsx'
+import TableRow    from './TableRow.jsx'
+import EntityModal from '../shared/EntityModal.jsx'
 
-function SectionHeader({ label, colSpan = 6 }) {
-  return (
-    <tr>
-      <td
-        colSpan={colSpan}
-        className="px-4 pt-6 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider"
-      >
-        {label}
-      </td>
-    </tr>
-  )
+function toMs(ts) {
+  if (!ts) return 0
+  if (typeof ts.toMillis === 'function') return ts.toMillis()
+  if (ts.seconds != null) return ts.seconds * 1000
+  return new Date(ts).getTime()
 }
 
 export default function TableView() {
-  const incomes = useFinanceStore((s) => s.incomes)
-  const expenses = useFinanceStore((s) => s.expenses)
-  const credits = useFinanceStore((s) => s.credits)
-  const savings = useFinanceStore((s) => s.savings)
+  const incomes    = useFinanceStore((s) => s.incomes)
+  const expenses   = useFinanceStore((s) => s.expenses)
+  const credits    = useFinanceStore((s) => s.credits)
+  const portfolios = useFinanceStore((s) => s.portfolios)
+  const savings    = useFinanceStore((s) => s.savings)
 
-  const [modal, setModal] = useState(null) // entity type string or null
+  const [editTarget, setEditTarget] = useState(null)
+
+  const allEntities = useMemo(() => [
+    ...incomes.map((e)    => ({ entity: e, type: 'income'    })),
+    ...credits.map((e)    => ({ entity: e, type: 'credit'    })),
+    ...expenses.map((e)   => ({ entity: e, type: 'expense'   })),
+    ...portfolios.map((e) => ({ entity: e, type: 'portfolio' })),
+    ...savings.map((e)    => ({ entity: e, type: 'savings'   })),
+  ].sort((a, b) => toMs(a.entity.createdAt) - toMs(b.entity.createdAt)),
+  [incomes, credits, expenses, portfolios, savings])
 
   return (
     <>
       <div className="p-4 max-w-7xl mx-auto overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="border-b border-gray-800">
-              <th className="px-4 py-3 text-left text-xs text-gray-500 font-medium w-24">Type</th>
-              <th className="px-4 py-3 text-left text-xs text-gray-500 font-medium">Title</th>
-              <th className="px-4 py-3 text-left text-xs text-gray-500 font-medium">Info</th>
-              <th className="px-4 py-3 text-left text-xs text-gray-500 font-medium">Amount</th>
-              <th className="px-4 py-3 text-left text-xs text-gray-500 font-medium">Budget / Limit</th>
-              <th className="px-4 py-3 w-24" />
+              <th className="px-4 py-3 text-left text-xs text-gray-500 font-medium uppercase tracking-wider w-32">Tipo</th>
+              <th className="px-4 py-3 text-left text-xs text-gray-500 font-medium uppercase tracking-wider">Título</th>
+              <th className="px-4 py-3 text-left text-xs text-gray-500 font-medium uppercase tracking-wider hidden sm:table-cell">Info</th>
+              <th className="px-4 py-3 text-right text-xs text-gray-500 font-medium uppercase tracking-wider">Cantidad</th>
+              <th className="px-4 py-3 text-right text-xs text-gray-500 font-medium uppercase tracking-wider hidden md:table-cell">Presupuesto</th>
+              <th className="px-4 py-3 w-28" />
             </tr>
           </thead>
           <tbody>
-            {/* ─── Incomes ─── */}
-            <SectionHeader label="Incomes" />
-            {incomes.map((e) => <TableRow key={e.id} entity={e} type="income" />)}
-            <AddRowButton type="income" onClick={setModal} />
-
-            {/* ─── Credits ─── */}
-            <SectionHeader label="Credits" />
-            {credits.map((e) => <TableRow key={e.id} entity={e} type="credit" />)}
-            <AddRowButton type="credit" onClick={setModal} />
-
-            {/* ─── Expenses ─── */}
-            <SectionHeader label="Expenses" />
-            {expenses.map((e) => <TableRow key={e.id} entity={e} type="expense" />)}
-            <AddRowButton type="expense" onClick={setModal} />
-
-            {/* ─── Savings ─── */}
-            <SectionHeader label="Savings" />
-            {savings.map((e) => <TableRow key={e.id} entity={e} type="savings" />)}
-            <AddRowButton type="savings" onClick={setModal} />
+            {allEntities.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-16 text-center text-gray-600">
+                  <p className="text-3xl mb-2">📭</p>
+                  <p>No hay elementos. Usa <span className="text-emerald-400 font-medium">+ Crear</span> para empezar.</p>
+                </td>
+              </tr>
+            )}
+            {allEntities.map(({ entity, type }) => (
+              <TableRow
+                key={entity.id}
+                entity={entity}
+                type={type}
+                onEdit={() => setEditTarget({ entity, type })}
+              />
+            ))}
           </tbody>
         </table>
       </div>
 
-      {modal && <AddEntityModal type={modal} onClose={() => setModal(null)} />}
+      {editTarget && (
+        <EntityModal
+          type={editTarget.type}
+          entity={editTarget.entity}
+          onClose={() => setEditTarget(null)}
+        />
+      )}
     </>
   )
 }
