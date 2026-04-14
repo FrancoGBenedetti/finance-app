@@ -241,6 +241,34 @@ export function useTransactions() {
     await batch.commit()
   }
 
+  // ── Reset Entities (End of month) ──────────────────────────────────────────
+  async function resetEntities(entitiesToReset) {
+    const { incomes, credits, transactions } = useFinanceStore.getState()
+    const batch = writeBatch(db)
+
+    for (const { id, type } of entitiesToReset) {
+      if (type === 'expense') {
+        batch.update(doc(db, 'expenses', id), { totalSpent: 0 })
+        const expenseTxs = transactions.filter((t) => t.expenseId === id)
+        expenseTxs.forEach((t) => batch.delete(doc(db, 'transactions', t.id)))
+      } else if (type === 'income') {
+        const inc = incomes.find(i => i.id === id)
+        if (inc && inc.initialAmount !== undefined) {
+          batch.update(doc(db, 'incomes', id), { amount: inc.initialAmount })
+        }
+      } else if (type === 'credit') {
+        const crd = credits.find(c => c.id === id)
+        if (crd && crd.limit !== undefined) {
+          batch.update(doc(db, 'credits', id), { used: 0, available: crd.limit })
+        }
+      } else if (type === 'savings') {
+        batch.update(doc(db, 'savings', id), { amount: 0 })
+      }
+    }
+    
+    await batch.commit()
+  }
+
   return {
     addIncome,      updateIncome,     removeIncome,
     addCredit,      updateCredit,     removeCredit,
@@ -248,5 +276,6 @@ export function useTransactions() {
     addTransaction,                   removeTransaction,
     addPortfolio,   updatePortfolio,  removePortfolio,
     addSavings,     updateSavings,    removeSavings,
+    resetEntities,
   }
 }

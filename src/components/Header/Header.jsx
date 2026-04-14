@@ -3,6 +3,7 @@ import { useDerivedTotals } from '../../hooks/useDerivedTotals.js'
 import { useFinanceStore } from '../../store/useFinanceStore.js'
 import { formatCurrencyCLP } from '../../utils/financialRules.js'
 import EntityModal from '../shared/EntityModal.jsx'
+import ResetModal from '../shared/ResetModal.jsx'
 
 function StatBlock({ label, value, valueColor = 'text-white' }) {
   return (
@@ -17,6 +18,7 @@ export default function Header() {
   const { totalAvailableIncome, totalSpent, totalDebt, totalSavings } = useDerivedTotals()
   const { activeView, setActiveView } = useFinanceStore()
   const [createOpen, setCreateOpen] = useState(false)
+  const [resetOpen, setResetOpen] = useState(false)
 
   return (
     <>
@@ -78,6 +80,14 @@ export default function Header() {
               </button>
             </div>
 
+            {/* Restart button */}
+            <button
+              onClick={() => setResetOpen(true)}
+              className="bg-gray-800 hover:bg-emerald-700 text-gray-300 hover:text-white border border-gray-700 hover:border-emerald-600 text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
+            >
+              🔄 Reiniciar
+            </button>
+
             {/* Create button */}
             <button
               onClick={() => setCreateOpen(true)}
@@ -91,6 +101,10 @@ export default function Header() {
 
       {createOpen && (
         <EntityModal onClose={() => setCreateOpen(false)} />
+      )}
+      
+      {resetOpen && (
+        <ResetModal onClose={() => setResetOpen(false)} />
       )}
     </>
   )
