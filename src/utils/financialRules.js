@@ -56,6 +56,8 @@ export function validateIncome(data) {
 export function validateCredit(data) {
   if (!data.title || data.title.trim() === '') return 'El título es requerido'
   if (!data.limit || Number(data.limit) <= 0) return 'El límite debe ser mayor a 0'
+  if (data.used && Number(data.used) < 0) return 'La deuda previa no puede ser un número negativo'
+  if (data.used && Number(data.used) > Number(data.limit)) return 'El saldo ya gastado no puede exceder el límite'
   return null
 }
 

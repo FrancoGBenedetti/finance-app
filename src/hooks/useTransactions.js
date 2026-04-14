@@ -68,9 +68,10 @@ export function useTransactions() {
     const error = validateCredit(data)
     if (error) throw new Error(error)
     const limit = Number(data.limit)
+    const used = data.used ? Number(data.used) : 0
     const ref = doc(collection(db, 'credits'))
     const batch = writeBatch(db)
-    batch.set(ref, { title: data.title, limit, used: 0, available: limit, createdAt: serverTimestamp() })
+    batch.set(ref, { title: data.title, limit, used, available: limit - used, createdAt: serverTimestamp() })
     await batch.commit()
     return ref.id
   }
@@ -81,11 +82,13 @@ export function useTransactions() {
     const { credits } = useFinanceStore.getState()
     const existing = credits.find((c) => c.id === id)
     const newLimit = Number(data.limit)
+    const newUsed = data.used !== undefined ? Number(data.used) : (existing?.used ?? 0)
     const batch = writeBatch(db)
     batch.update(doc(db, 'credits', id), {
       title: data.title,
       limit: newLimit,
-      available: newLimit - (existing?.used ?? 0),
+      used: newUsed,
+      available: newLimit - newUsed,
     })
     await batch.commit()
   }

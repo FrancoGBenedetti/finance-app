@@ -57,6 +57,16 @@ export const ENTITY_CONFIG = {
     fields: [
       { key: 'title', label: 'Título',           type: 'text',   placeholder: 'ej: Tarjeta Visa', required: true },
       { key: 'limit', label: 'Límite de crédito', type: 'number', placeholder: '0', required: true, min: 1, step: 1 },
+      { 
+        key: 'used', 
+        label: 'Ya gastado (opcional)', 
+        type: 'number', 
+        placeholder: '0', 
+        required: false, 
+        min: 0, 
+        step: 1,
+        hint: 'Ingresa la deuda previa existente en esta tarjeta.'
+      },
     ],
   },
 
