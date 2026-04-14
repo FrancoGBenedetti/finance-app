@@ -113,13 +113,13 @@ export default function TableRow({ entity, type, onEdit }) {
         </td>
 
         {/* Presupuesto */}
-        <td className="px-4 py-3 text-right text-gray-500 tabular-nums hidden md:table-cell">
+        <td className="px-4 py-3 text-right text-gray-500 tabular-nums">
           {displayBudget}
         </td>
 
         {/* Acciones */}
         <td className="px-4 py-3 w-28" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center justify-end gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
             {type === 'expense' && (
               <button
                 onClick={(e) => { e.stopPropagation(); setShowAddTx(true) }}

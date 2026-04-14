@@ -38,7 +38,7 @@ export default function TableView() {
               <th className="px-4 py-3 text-left text-xs text-gray-500 font-medium uppercase tracking-wider">Título</th>
               <th className="px-4 py-3 text-left text-xs text-gray-500 font-medium uppercase tracking-wider hidden sm:table-cell">Info</th>
               <th className="px-4 py-3 text-right text-xs text-gray-500 font-medium uppercase tracking-wider">Cantidad</th>
-              <th className="px-4 py-3 text-right text-xs text-gray-500 font-medium uppercase tracking-wider hidden md:table-cell">Presupuesto</th>
+              <th className="px-4 py-3 text-right text-xs text-gray-500 font-medium uppercase tracking-wider">Presupuesto</th>
               <th className="px-4 py-3 w-28" />
             </tr>
           </thead>
