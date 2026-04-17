@@ -111,7 +111,6 @@ export function useTransactions() {
     batch.set(ref, {
       title: data.title,
       budget: Number(data.budget ?? 0),
-      totalSpent: 0,
       createdAt: serverTimestamp(),
     })
     await batch.commit()
@@ -155,27 +154,18 @@ export function useTransactions() {
       sourceType: payload.sourceType,
       createdAt: serverTimestamp(),
     })
-    batch.update(doc(db, 'expenses', expense.id), {
-      totalSpent: (expense.totalSpent ?? 0) + payload.amount,
-    })
     applySourceUpdate(batch, sideEffect)
     await batch.commit()
     return transRef.id
   }
 
   async function removeTransaction(id) {
-    const { incomes, credits, transactions, expenses } = useFinanceStore.getState()
+    const { incomes, credits, transactions } = useFinanceStore.getState()
     const transaction = transactions.find((t) => t.id === id)
     if (!transaction) throw new Error('Transacción no encontrada')
-    const expense = expenses.find((e) => e.id === transaction.expenseId)
     const reversal = computeTransactionReversal(transaction, incomes, credits)
     const batch = writeBatch(db)
     batch.delete(doc(db, 'transactions', id))
-    if (expense) {
-      batch.update(doc(db, 'expenses', expense.id), {
-        totalSpent: Math.max(0, (expense.totalSpent ?? 0) - (transaction.amount ?? 0)),
-      })
-    }
     applySourceUpdate(batch, reversal)
     await batch.commit()
   }
@@ -188,7 +178,7 @@ export function useTransactions() {
     const batch = writeBatch(db)
     batch.set(ref, {
       title: data.title,
-      linkedIncomeIds: data.linkedIncomeIds ?? [],
+      linkedEntities: data.linkedEntities ?? [],
       createdAt: serverTimestamp(),
     })
     await batch.commit()
@@ -201,7 +191,7 @@ export function useTransactions() {
     const batch = writeBatch(db)
     batch.update(doc(db, 'portfolios', id), {
       title: data.title,
-      linkedIncomeIds: data.linkedIncomeIds ?? [],
+      linkedEntities: data.linkedEntities ?? [],
     })
     await batch.commit()
   }
@@ -251,7 +241,6 @@ export function useTransactions() {
 
     for (const { id, type } of entitiesToReset) {
       if (type === 'expense') {
-        batch.update(doc(db, 'expenses', id), { totalSpent: 0 })
         const expenseTxs = transactions.filter((t) => t.expenseId === id)
         expenseTxs.forEach((t) => batch.delete(doc(db, 'transactions', t.id)))
       } else if (type === 'income') {

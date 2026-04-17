@@ -8,18 +8,19 @@ import {
 } from '../utils/financialRules.js'
 
 export function useDerivedTotals() {
-  const incomes  = useFinanceStore((s) => s.incomes)
-  const expenses = useFinanceStore((s) => s.expenses)
-  const credits  = useFinanceStore((s) => s.credits)
-  const savings  = useFinanceStore((s) => s.savings)   // ← ahorro manual
+  const incomes      = useFinanceStore((s) => s.incomes)
+  const expenses     = useFinanceStore((s) => s.expenses)
+  const credits      = useFinanceStore((s) => s.credits)
+  const savings      = useFinanceStore((s) => s.savings)
+  const transactions = useFinanceStore((s) => s.transactions)
 
   return useMemo(
     () => ({
       totalAvailableIncome: computeTotalAvailableIncome(incomes),
-      totalSpent:           computeTotalSpent(expenses),
+      totalSpent:           computeTotalSpent(expenses, transactions),
       totalDebt:            computeTotalDebt(credits),
-      totalSavings:         computeTotalSavings(savings),  // suma de savings.amount
+      totalSavings:         computeTotalSavings(savings),
     }),
-    [incomes, expenses, credits, savings]
+    [incomes, expenses, credits, savings, transactions]
   )
 }

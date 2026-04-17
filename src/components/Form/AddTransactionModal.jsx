@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useTransactions } from '../../hooks/useTransactions.js'
+import { useFinanceStore } from '../../store/useFinanceStore.js'
 import SourceSelector from './SourceSelector.jsx'
 import {
   formatCurrencyCLP,
   computeProgressPercent,
+  computeExpenseTotalFromEntries,
   isBudgetExceeded,
   isBudgetNearLimit,
 } from '../../utils/financialRules.js'
@@ -15,6 +17,7 @@ import {
  */
 export default function AddTransactionModal({ expense, onClose }) {
   const { addTransaction } = useTransactions()
+  const transactions = useFinanceStore((s) => s.transactions)
   const [form, setForm] = useState({ amount: '', sourceId: '', sourceType: '' })
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -25,9 +28,10 @@ export default function AddTransactionModal({ expense, onClose }) {
     return () => window.removeEventListener('keydown', fn)
   }, [onClose])
 
-  const pct       = computeProgressPercent(expense.totalSpent, expense.budget)
-  const nearLimit = isBudgetNearLimit(expense)
-  const exceeded  = isBudgetExceeded(expense)
+  const totalSpent = computeExpenseTotalFromEntries(transactions, expense.id)
+  const pct        = computeProgressPercent(totalSpent, expense.budget)
+  const nearLimit  = isBudgetNearLimit({ ...expense, totalSpent })
+  const exceeded   = isBudgetExceeded({ ...expense, totalSpent })
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -73,7 +77,7 @@ export default function AddTransactionModal({ expense, onClose }) {
           <div className="flex justify-between text-sm">
             <span className="text-gray-400">Acumulado</span>
             <span className="text-white tabular-nums font-medium">
-              {formatCurrencyCLP(expense.totalSpent ?? 0)}
+              {formatCurrencyCLP(totalSpent)}
               {expense.budget > 0 && (
                 <span className="text-gray-500 font-normal">
                   {' '}/{' '}{formatCurrencyCLP(expense.budget)}
@@ -93,7 +97,7 @@ export default function AddTransactionModal({ expense, onClose }) {
               </div>
               {exceeded && (
                 <p className="text-xs text-red-400">
-                  ⚠ Excedido por {formatCurrencyCLP((expense.totalSpent ?? 0) - expense.budget)}
+                  ⚠ Excedido por {formatCurrencyCLP(totalSpent - expense.budget)}
                 </p>
               )}
               {!exceeded && nearLimit && (

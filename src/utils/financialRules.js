@@ -16,8 +16,22 @@ export function computeTotalAvailableIncome(incomes) {
   return incomes.reduce((sum, i) => sum + (i.amount ?? 0), 0)
 }
 
-/** totalSpent derivado de expense.totalSpent (sincronizado vía Firestore batch) */
-export function computeTotalSpent(expenses) {
+/** totalSpent calculado desde transacciones (event-sourced) */
+export function computeExpenseTotalFromEntries(transactions, expenseId) {
+  return transactions
+    .filter((t) => t.expenseId === expenseId)
+    .reduce((sum, t) => sum + (t.amount ?? 0), 0)
+}
+
+/** Suma de totalSpent de todos los gastos, calculado desde transacciones */
+export function computeTotalSpent(expenses, transactions) {
+  if (transactions) {
+    return expenses.reduce(
+      (sum, e) => sum + computeExpenseTotalFromEntries(transactions, e.id),
+      0
+    )
+  }
+  // Backward compat: sum from expense.totalSpent
   return expenses.reduce((sum, e) => sum + (e.totalSpent ?? 0), 0)
 }
 
@@ -32,17 +46,31 @@ export function computeTotalSavings(savings) {
 
 // ─── Portfolio total (calculado desde ingresos vinculados) ───────────────────
 
-/** Total de un portafolio = suma de income.amount de los ingresos vinculados */
-export function computePortfolioTotal(portfolio, incomes) {
+/**
+ * Total de un portafolio.
+ * Modelo nuevo: linkedEntities = [{id, type}] → suma el valor principal de cada entidad.
+ * Modelo legacy: linkedIncomeIds = [id] → suma income.amount (backward compat).
+ */
+export function computePortfolioTotal(portfolio, incomes, allData) {
+  if (portfolio.linkedEntities) {
+    const { expenses, credits, savings, transactions } = allData ?? {}
+    return portfolio.linkedEntities.reduce((sum, { id, type }) => {
+      if (type === 'income') return sum + (incomes.find((i) => i.id === id)?.amount ?? 0)
+      if (type === 'expense' && transactions != null)
+        return sum + computeExpenseTotalFromEntries(transactions, id)
+      if (type === 'credit') return sum + (credits?.find((c) => c.id === id)?.available ?? 0)
+      if (type === 'savings') return sum + (savings?.find((s) => s.id === id)?.amount ?? 0)
+      return sum
+    }, 0)
+  }
+  // Backward compat: linkedIncomeIds
   const ids = portfolio.linkedIncomeIds ?? []
-  return incomes
-    .filter((i) => ids.includes(i.id))
-    .reduce((sum, i) => sum + (i.amount ?? 0), 0)
+  return incomes.filter((i) => ids.includes(i.id)).reduce((sum, i) => sum + (i.amount ?? 0), 0)
 }
 
-/** Total de todos los portafolios (para stats si se quiere mostrar) */
-export function computeTotalPortfolios(portfolios, incomes) {
-  return portfolios.reduce((sum, p) => sum + computePortfolioTotal(p, incomes), 0)
+/** Total de todos los portafolios */
+export function computeTotalPortfolios(portfolios, incomes, allData) {
+  return portfolios.reduce((sum, p) => sum + computePortfolioTotal(p, incomes, allData), 0)
 }
 
 // ─── Validaciones ─────────────────────────────────────────────────────────────

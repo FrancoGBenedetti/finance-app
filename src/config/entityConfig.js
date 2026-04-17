@@ -72,7 +72,7 @@ export const ENTITY_CONFIG = {
 
   portfolio: {
     label: 'Portafolio',
-    description: 'Suma de ingresos seleccionados',
+    description: 'Suma de entidades seleccionadas',
     icon: '📊',
     badgeClass: 'bg-purple-900/60 text-purple-300 border border-purple-800',
     buttonClass:
@@ -86,11 +86,11 @@ export const ENTITY_CONFIG = {
         required: true,
       },
       {
-        key: 'linkedIncomeIds',
-        label: 'Ingresos a agrupar',
-        type: 'income-multiselect',
+        key: 'linkedEntities',
+        label: 'Entidades a agrupar',
+        type: 'entity-multiselect',
         defaultValue: [],
-        hint: 'El total del portafolio es la suma de los montos disponibles de los ingresos seleccionados.',
+        hint: 'El total del portafolio es la suma del valor principal de cada entidad seleccionada.',
       },
     ],
   },

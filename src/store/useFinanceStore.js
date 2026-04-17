@@ -10,20 +10,22 @@ export const useFinanceStore = create((set, get) => ({
   transactions: [],   // Eventos de gasto (inmutables)
 
   // ─── UI state ─────────────────────────────────────────────────────────────
-  activeView: 'table',
-  loading:    true,
-  error:      null,
+  activeView:   'table',
+  activeFilter: 'all',
+  loading:      true,
+  error:        null,
 
   // ─── Setters ──────────────────────────────────────────────────────────────
-  setIncomes:      (v) => set({ incomes: v }),
-  setExpenses:     (v) => set({ expenses: v }),
-  setCredits:      (v) => set({ credits: v }),
-  setPortfolios:   (v) => set({ portfolios: v }),
-  setSavings:      (v) => set({ savings: v }),
-  setTransactions: (v) => set({ transactions: v }),
-  setLoading:      (v) => set({ loading: v }),
-  setError:        (v) => set({ error: v }),
-  setActiveView:   (v) => set({ activeView: v }),
+  setIncomes:       (v) => set({ incomes: v }),
+  setExpenses:      (v) => set({ expenses: v }),
+  setCredits:       (v) => set({ credits: v }),
+  setPortfolios:    (v) => set({ portfolios: v }),
+  setSavings:       (v) => set({ savings: v }),
+  setTransactions:  (v) => set({ transactions: v }),
+  setLoading:       (v) => set({ loading: v }),
+  setError:         (v) => set({ error: v }),
+  setActiveView:    (v) => set({ activeView: v }),
+  setActiveFilter:  (v) => set({ activeFilter: v }),
 
   // ─── Lookups ──────────────────────────────────────────────────────────────
   getIncomeById:    (id) => get().incomes.find((i) => i.id === id),

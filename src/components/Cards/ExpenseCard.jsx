@@ -1,55 +1,36 @@
 import { useState } from 'react'
 import EntityCard from '../EntityCard/EntityCard.jsx'
 import ProgressBar from '../ProgressBar/ProgressBar.jsx'
-import EntityModal from '../shared/EntityModal.jsx'
-import AddTransactionModal from '../Form/AddTransactionModal.jsx'
+import DetailModal from '../shared/DetailModal.jsx'
 import {
   formatCurrencyCLP,
   computeProgressPercent,
+  computeExpenseTotalFromEntries,
   isBudgetExceeded,
   isBudgetNearLimit,
 } from '../../utils/financialRules.js'
-import { useTransactions } from '../../hooks/useTransactions.js'
 import { useFinanceStore } from '../../store/useFinanceStore.js'
 import { ENTITY_CONFIG } from '../../config/entityConfig.js'
 
 export default function ExpenseCard({ expense }) {
-  const { removeExpense } = useTransactions()
-  const txCount = useFinanceStore((s) =>
-    s.transactions.filter((t) => t.expenseId === expense.id).length
-  )
-  const [editOpen, setEditOpen] = useState(false)
-  const [addTxOpen, setAddTxOpen] = useState(false)
+  const transactions = useFinanceStore((s) => s.transactions)
+  const [detailOpen, setDetailOpen] = useState(false)
   const cfg = ENTITY_CONFIG.expense
 
-  const pct      = computeProgressPercent(expense.totalSpent, expense.budget)
-  const exceeded = isBudgetExceeded(expense)
-  const nearLimit = isBudgetNearLimit(expense)
+  const totalSpent = computeExpenseTotalFromEntries(transactions, expense.id)
+  const pct        = computeProgressPercent(totalSpent, expense.budget)
+  const exceeded   = isBudgetExceeded({ ...expense, totalSpent })
+  const nearLimit  = isBudgetNearLimit({ ...expense, totalSpent })
+  const txCount    = transactions.filter((t) => t.expenseId === expense.id).length
 
   return (
     <>
-      <EntityCard>
+      <EntityCard onClick={() => setDetailOpen(true)}>
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${cfg.badgeClass}`}>
             {cfg.icon} {cfg.label}
           </span>
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={() => setEditOpen(true)}
-              className="text-gray-600 hover:text-gray-300 transition-colors p-1 rounded-lg hover:bg-gray-800"
-              title="Editar"
-            >
-              ✏
-            </button>
-            <button
-              onClick={() => removeExpense(expense.id).catch(alert)}
-              className="text-gray-600 hover:text-red-400 transition-colors p-1 rounded-lg hover:bg-gray-800"
-              title="Eliminar"
-            >
-              ×
-            </button>
-          </div>
         </div>
 
         {/* Title */}
@@ -59,7 +40,7 @@ export default function ExpenseCard({ expense }) {
         <div className="flex items-end justify-between">
           <div>
             <span className="text-2xl font-bold text-red-400 tabular-nums">
-              {formatCurrencyCLP(expense.totalSpent ?? 0)}
+              {formatCurrencyCLP(totalSpent)}
             </span>
             {expense.budget > 0 && (
               <span className="text-sm text-gray-500 ml-1.5">
@@ -80,7 +61,7 @@ export default function ExpenseCard({ expense }) {
         {/* Budget warnings */}
         {exceeded && (
           <p className="text-xs text-red-400">
-            ⚠ Excedido por {formatCurrencyCLP((expense.totalSpent ?? 0) - expense.budget)}
+            ⚠ Excedido por {formatCurrencyCLP(totalSpent - expense.budget)}
           </p>
         )}
         {!exceeded && nearLimit && (
@@ -92,27 +73,12 @@ export default function ExpenseCard({ expense }) {
           <span className="text-xs text-gray-600">
             {txCount} {txCount === 1 ? 'transacción' : 'transacciones'}
           </span>
-          <button
-            onClick={() => setAddTxOpen(true)}
-            className="text-xs bg-gray-800 hover:bg-emerald-700 text-gray-400 hover:text-white border border-gray-700 hover:border-emerald-600 rounded-lg px-3 py-1 transition-colors"
-          >
-            + Agregar
-          </button>
+          <span className="text-xs text-gray-600">Ver detalle →</span>
         </div>
       </EntityCard>
 
-      {editOpen && (
-        <EntityModal
-          type="expense"
-          entity={expense}
-          onClose={() => setEditOpen(false)}
-        />
-      )}
-      {addTxOpen && (
-        <AddTransactionModal
-          expense={expense}
-          onClose={() => setAddTxOpen(false)}
-        />
+      {detailOpen && (
+        <DetailModal entity={expense} type="expense" onClose={() => setDetailOpen(false)} />
       )}
     </>
   )

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useFinanceStore } from '../../store/useFinanceStore.js'
 import TableRow    from './TableRow.jsx'
-import EntityModal from '../shared/EntityModal.jsx'
+import DetailModal from '../shared/DetailModal.jsx'
 
 function toMs(ts) {
   if (!ts) return 0
@@ -17,7 +17,7 @@ export default function TableView() {
   const portfolios = useFinanceStore((s) => s.portfolios)
   const savings    = useFinanceStore((s) => s.savings)
 
-  const [editTarget, setEditTarget] = useState(null)
+  const [detailTarget, setDetailTarget] = useState(null)
 
   const allEntities = useMemo(() => [
     ...incomes.map((e)    => ({ entity: e, type: 'income'    })),
@@ -56,18 +56,18 @@ export default function TableView() {
                 key={entity.id}
                 entity={entity}
                 type={type}
-                onEdit={() => setEditTarget({ entity, type })}
+                onDetail={() => setDetailTarget({ entity, type })}
               />
             ))}
           </tbody>
         </table>
       </div>
 
-      {editTarget && (
-        <EntityModal
-          type={editTarget.type}
-          entity={editTarget.entity}
-          onClose={() => setEditTarget(null)}
+      {detailTarget && (
+        <DetailModal
+          type={detailTarget.type}
+          entity={detailTarget.entity}
+          onClose={() => setDetailTarget(null)}
         />
       )}
     </>
