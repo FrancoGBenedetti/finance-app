@@ -12,6 +12,7 @@ function toMs(ts) {
 
 export default function TableView() {
   const incomes    = useFinanceStore((s) => s.incomes)
+  const debits     = useFinanceStore((s) => s.debits)
   const expenses   = useFinanceStore((s) => s.expenses)
   const credits    = useFinanceStore((s) => s.credits)
   const portfolios = useFinanceStore((s) => s.portfolios)
@@ -21,12 +22,13 @@ export default function TableView() {
 
   const allEntities = useMemo(() => [
     ...incomes.map((e)    => ({ entity: e, type: 'income'    })),
+    ...debits.map((e)     => ({ entity: e, type: 'debito'    })),
     ...credits.map((e)    => ({ entity: e, type: 'credit'    })),
     ...expenses.map((e)   => ({ entity: e, type: 'expense'   })),
     ...portfolios.map((e) => ({ entity: e, type: 'portfolio' })),
     ...savings.map((e)    => ({ entity: e, type: 'savings'   })),
   ].sort((a, b) => toMs(a.entity.createdAt) - toMs(b.entity.createdAt)),
-  [incomes, credits, expenses, portfolios, savings])
+  [incomes, debits, credits, expenses, portfolios, savings])
 
   return (
     <>

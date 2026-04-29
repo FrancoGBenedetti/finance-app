@@ -39,7 +39,7 @@ export default function DetailModal({ entity, type, onClose }) {
   const savings     = useFinanceStore((s) => s.savings)
   const {
     addTransaction,
-    removeIncome, removeCredit, removeExpense, removePortfolio, removeSavings,
+    removeIncome, removeDebito, removeCredit, removeExpense, removePortfolio, removeSavings,
   } = useTransactions()
 
   const [showEdit, setShowEdit]       = useState(false)
@@ -58,14 +58,16 @@ export default function DetailModal({ entity, type, onClose }) {
     let txs = []
     if (type === 'expense') txs = allTx.filter((t) => t.expenseId === entity.id)
     else if (type === 'income') txs = allTx.filter((t) => t.sourceType === 'income' && t.sourceId === entity.id)
+    else if (type === 'debito') txs = allTx.filter((t) => t.sourceType === 'debit'  && t.sourceId === entity.id)
     else if (type === 'credit') txs = allTx.filter((t) => t.sourceType === 'credit' && t.sourceId === entity.id)
     return [...txs].sort((a, b) => toMs(b.createdAt) - toMs(a.createdAt))
   })()
 
   // ── Computed values ────────────────────────────────────────────────────────
   const totalSpent    = computeExpenseTotalFromEntries(allTx, entity.id)
+  const debits    = useFinanceStore((s) => s.debits)
   const portfolioTotal = type === 'portfolio'
-    ? computePortfolioTotal(entity, incomes, { expenses, credits, savings, transactions: allTx })
+    ? computePortfolioTotal(entity, incomes, { expenses, debits, credits, savings, transactions: allTx })
     : 0
 
   const expensePct = type === 'expense' ? computeProgressPercent(totalSpent, entity.budget) : 0
@@ -89,6 +91,7 @@ export default function DetailModal({ entity, type, onClose }) {
     if (!window.confirm(`¿Eliminar "${entity.title}"?`)) return
     try {
       if (type === 'income')    await removeIncome(entity.id)
+      if (type === 'debito')    await removeDebito(entity.id)
       if (type === 'credit')    await removeCredit(entity.id)
       if (type === 'expense')   await removeExpense(entity.id)
       if (type === 'portfolio') await removePortfolio(entity.id)
@@ -124,6 +127,7 @@ export default function DetailModal({ entity, type, onClose }) {
     const eCfg = ENTITY_CONFIG[eType]
     let name = '?', val = 0
     if (eType === 'income')  { const e = incomes.find((i) => i.id === id); name = e?.title ?? id; val = e?.amount ?? 0 }
+    if (eType === 'debito')  { const e = debits.find((d) => d.id === id);  name = e?.title ?? id; val = e?.amount ?? 0 }
     if (eType === 'expense') { const e = expenses.find((exp) => exp.id === id); name = e?.title ?? id; val = computeExpenseTotalFromEntries(allTx, id) }
     if (eType === 'credit')  { const e = credits.find((c) => c.id === id); name = e?.title ?? id; val = e?.available ?? 0 }
     if (eType === 'savings') { const e = savings.find((s) => s.id === id); name = e?.title ?? id; val = e?.amount ?? 0 }
@@ -132,7 +136,7 @@ export default function DetailModal({ entity, type, onClose }) {
 
   const inputCls = 'bg-gray-800 border border-gray-700 text-gray-100 text-sm rounded-lg px-3 py-2 w-full focus:outline-none focus:border-emerald-500 transition-colors'
 
-  const showHistory = type === 'expense' || type === 'income' || type === 'credit'
+  const showHistory = type === 'expense' || type === 'income' || type === 'debito' || type === 'credit'
 
   return (
     <>
@@ -202,6 +206,46 @@ export default function DetailModal({ entity, type, onClose }) {
                       </div>
                       <div className="flex justify-between text-xs text-gray-600">
                         <span>{consumed > 0 ? `Gastado ${formatCurrencyCLP(consumed)}` : 'Sin uso aún'}</span>
+                        <span>{pct}%</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
+            {/* ── Débito stats ──────────────────────────────────────────────── */}
+            {type === 'debito' && (() => {
+              const initial   = entity.initialAmount ?? entity.amount ?? 0
+              const remaining = entity.amount ?? 0
+              const consumed  = Math.max(0, initial - remaining)
+              const pct       = initial > 0 ? Math.min(100, Math.round((consumed / initial) * 100)) : 0
+              const barColor  = pct < 40 ? 'bg-cyan-500' : pct < 70 ? 'bg-yellow-400' : 'bg-red-500'
+              return (
+                <div className="bg-gray-800/50 rounded-xl p-4 flex flex-col gap-3">
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-0.5">Saldo disponible</p>
+                      <span className="text-2xl font-bold text-cyan-400 tabular-nums">
+                        {formatCurrencyCLP(remaining)}
+                      </span>
+                    </div>
+                    {initial > 0 && (
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500 mb-0.5">Saldo inicial</p>
+                        <span className="text-base font-medium text-gray-400 tabular-nums">
+                          {formatCurrencyCLP(initial)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {initial > 0 && (
+                    <div className="flex flex-col gap-1">
+                      <div className="w-full bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                        <div className={`h-1.5 rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-600">
+                        <span>{consumed > 0 ? `Usado ${formatCurrencyCLP(consumed)}` : 'Sin uso aún'}</span>
                         <span>{pct}%</span>
                       </div>
                     </div>

@@ -35,7 +35,7 @@ function toCSVString(rows) {
  * Descarga los datos de la app como CSV.
  * @param {{ incomes, expenses, credits, savings, transactions }} storeData
  */
-export function downloadCSV({ incomes, expenses, credits, savings, transactions }) {
+export function downloadCSV({ incomes, debits = [], expenses, credits, savings, transactions }) {
   const rows = []
 
   // ── Encabezado de resumen ───────────────────────────────────────────────────
@@ -43,6 +43,10 @@ export function downloadCSV({ incomes, expenses, credits, savings, transactions 
 
   incomes.forEach((e) => {
     rows.push(['Ingreso', e.title, e.amount ?? 0, '', fmtDate(e.createdAt)])
+  })
+
+  debits.forEach((e) => {
+    rows.push(['Débito', e.title, e.amount ?? 0, '', fmtDate(e.createdAt)])
   })
 
   expenses.forEach((e) => {
@@ -70,10 +74,13 @@ export function downloadCSV({ incomes, expenses, credits, savings, transactions 
   sorted.forEach((tx) => {
     const expenseName = expenses.find((e) => e.id === tx.expenseId)?.title ?? tx.expenseId ?? ''
     const sourceName  =
-      tx.sourceType === 'income'
-        ? (incomes.find((i) => i.id === tx.sourceId)?.title ?? tx.sourceId ?? '')
-        : (credits.find((c) => c.id === tx.sourceId)?.title ?? tx.sourceId ?? '')
-    const sourceLabel = tx.sourceType === 'income' ? 'Ingreso' : 'Crédito'
+      tx.sourceType === 'income' ? (incomes.find((i) => i.id === tx.sourceId)?.title ?? tx.sourceId ?? '')
+      : tx.sourceType === 'debit' ? (debits.find((d) => d.id === tx.sourceId)?.title ?? tx.sourceId ?? '')
+      : (credits.find((c) => c.id === tx.sourceId)?.title ?? tx.sourceId ?? '')
+    const sourceLabel =
+      tx.sourceType === 'income' ? 'Ingreso'
+      : tx.sourceType === 'debit' ? 'Débito'
+      : 'Crédito'
     rows.push([expenseName, tx.amount ?? 0, sourceName, sourceLabel, fmtDate(tx.createdAt)])
   })
 

@@ -1,6 +1,7 @@
 import { useFinanceData } from './hooks/useFinanceData.js'
 import { useFinanceStore } from './store/useFinanceStore.js'
-import Header from './components/Header/Header.jsx'
+import Header  from './components/Header/Header.jsx'
+import Sidebar from './components/shared/Sidebar.jsx'
 import TableView from './components/Table/TableView.jsx'
 import CardsView from './components/Cards/CardsView.jsx'
 
@@ -39,6 +40,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <Sidebar />
       <Header />
       <main className="flex-1">
         {activeView === 'table' ? <TableView /> : <CardsView />}

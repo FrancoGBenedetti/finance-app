@@ -18,7 +18,8 @@ export default function PortfolioCard({ portfolio }) {
   const [detailOpen, setDetailOpen] = useState(false)
   const cfg = ENTITY_CONFIG.portfolio
 
-  const allData = { expenses, credits, savings, transactions }
+  const debits       = useFinanceStore((s) => s.debits)
+  const allData = { expenses, debits, credits, savings, transactions }
   const total   = computePortfolioTotal(portfolio, incomes, allData)
 
   // Support both new (linkedEntities) and legacy (linkedIncomeIds) formats
@@ -29,6 +30,7 @@ export default function PortfolioCard({ portfolio }) {
     const eCfg = ENTITY_CONFIG[type]
     let name = '?', val = 0
     if (type === 'income')  { const e = incomes.find((i) => i.id === id); name = e?.title ?? id; val = e?.amount ?? 0 }
+    if (type === 'debito')  { const e = debits.find((d) => d.id === id);  name = e?.title ?? id; val = e?.amount ?? 0 }
     if (type === 'expense') { const e = expenses.find((exp) => exp.id === id); name = e?.title ?? id; val = computeExpenseTotalFromEntries(transactions, id) }
     if (type === 'credit')  { const e = credits.find((c) => c.id === id); name = e?.title ?? id; val = e?.available ?? 0 }
     if (type === 'savings') { const e = savings.find((s) => s.id === id); name = e?.title ?? id; val = e?.amount ?? 0 }

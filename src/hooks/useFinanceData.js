@@ -1,17 +1,18 @@
 import { useEffect, useRef } from 'react'
-import { useFinanceStore }      from '../store/useFinanceStore.js'
-import { subscribeToIncomes }       from '../firebase/incomes.js'
-import { subscribeToExpenses }      from '../firebase/expenses.js'
-import { subscribeToCredits }       from '../firebase/credits.js'
-import { subscribeToPortfolios }    from '../firebase/portfolios.js'
-import { subscribeToSavings }       from '../firebase/savings.js'
-import { subscribeToTransactions }  from '../firebase/transactions.js'
+import { useFinanceStore }        from '../store/useFinanceStore.js'
+import { subscribeToIncomes }     from '../firebase/incomes.js'
+import { subscribeToDebits }      from '../firebase/debits.js'
+import { subscribeToExpenses }    from '../firebase/expenses.js'
+import { subscribeToCredits }     from '../firebase/credits.js'
+import { subscribeToPortfolios }  from '../firebase/portfolios.js'
+import { subscribeToSavings }     from '../firebase/savings.js'
+import { subscribeToTransactions } from '../firebase/transactions.js'
 
-const COLLECTION_COUNT = 6
+const COLLECTION_COUNT = 7
 
 export function useFinanceData() {
   const {
-    setIncomes, setExpenses, setCredits,
+    setIncomes, setDebits, setExpenses, setCredits,
     setPortfolios, setSavings, setTransactions,
     setLoading,
   } = useFinanceStore()
@@ -28,6 +29,7 @@ export function useFinanceData() {
 
     const unsubs = [
       subscribeToIncomes((d)      => { setIncomes(d);      onReady() }),
+      subscribeToDebits((d)       => { setDebits(d);       onReady() }),
       subscribeToExpenses((d)     => { setExpenses(d);     onReady() }),
       subscribeToCredits((d)      => { setCredits(d);      onReady() }),
       subscribeToPortfolios((d)   => { setPortfolios(d);   onReady() }),
@@ -36,6 +38,6 @@ export function useFinanceData() {
     ]
 
     return () => unsubs.forEach((fn) => fn())
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 }

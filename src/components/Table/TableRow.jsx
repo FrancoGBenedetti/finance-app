@@ -33,8 +33,12 @@ export default function TableRow({ entity, type, onDetail }) {
     ? computePortfolioTotal(entity, incomes, { expenses, credits, savings, transactions })
     : 0
 
+  const debitInitial  = type === 'debito' ? (entity.initialAmount ?? entity.amount ?? 0) : 0
+  const debitConsumed = type === 'debito' ? Math.max(0, debitInitial - (entity.amount ?? 0)) : 0
+
   const displayAmount =
     type === 'income'    ? formatCurrencyCLP(entity.amount)
+    : type === 'debito'    ? formatCurrencyCLP(entity.amount ?? 0)
     : type === 'credit'    ? formatCurrencyCLP(entity.available)
     : type === 'expense'   ? formatCurrencyCLP(totalSpent)
     : type === 'portfolio' ? formatCurrencyCLP(portfolioTotal)
@@ -44,12 +48,12 @@ export default function TableRow({ entity, type, onDetail }) {
     type === 'expense' ? formatCurrencyCLP(entity.budget ?? 0)
     : type === 'credit'  ? formatCurrencyCLP(entity.limit)
     : type === 'income'  ? formatCurrencyCLP(incomeInitial)
+    : type === 'debito'  ? formatCurrencyCLP(debitInitial)
     : '—'
 
   const displayInfo =
-    type === 'income'    ? (incomeConsumed > 0
-                              ? `Gastado ${formatCurrencyCLP(incomeConsumed)}`
-                              : 'Sin uso aún')
+    type === 'income'    ? (incomeConsumed > 0 ? `Gastado ${formatCurrencyCLP(incomeConsumed)}` : 'Sin uso aún')
+    : type === 'debito'    ? (debitConsumed > 0 ? `Usado ${formatCurrencyCLP(debitConsumed)}` : 'Sin uso aún')
     : type === 'credit'    ? `Usado: ${formatCurrencyCLP(entity.used)}`
     : type === 'expense'   ? `${txCount} transacción${txCount !== 1 ? 'es' : ''}`
     : type === 'portfolio' ? `${(entity.linkedEntities ?? entity.linkedIncomeIds ?? []).length} entidades vinculadas`

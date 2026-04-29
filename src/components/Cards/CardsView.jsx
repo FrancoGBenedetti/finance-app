@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useFinanceStore } from '../../store/useFinanceStore.js'
 import IncomeCard    from './IncomeCard.jsx'
+import DebitCard     from './DebitCard.jsx'
 import ExpenseCard   from './ExpenseCard.jsx'
 import CreditCard    from './CreditCard.jsx'
 import PortfolioCard from './PortfolioCard.jsx'
@@ -15,6 +16,7 @@ function toMs(ts) {
 
 export default function CardsView() {
   const incomes      = useFinanceStore((s) => s.incomes)
+  const debits       = useFinanceStore((s) => s.debits)
   const expenses     = useFinanceStore((s) => s.expenses)
   const credits      = useFinanceStore((s) => s.credits)
   const portfolios   = useFinanceStore((s) => s.portfolios)
@@ -23,12 +25,13 @@ export default function CardsView() {
 
   const allEntities = useMemo(() => [
     ...incomes.map((e)    => ({ entity: e, type: 'income'    })),
+    ...debits.map((e)     => ({ entity: e, type: 'debito'    })),
     ...credits.map((e)    => ({ entity: e, type: 'credit'    })),
     ...expenses.map((e)   => ({ entity: e, type: 'expense'   })),
     ...portfolios.map((e) => ({ entity: e, type: 'portfolio' })),
     ...savings.map((e)    => ({ entity: e, type: 'savings'   })),
   ].sort((a, b) => toMs(a.entity.createdAt) - toMs(b.entity.createdAt)),
-  [incomes, credits, expenses, portfolios, savings])
+  [incomes, debits, credits, expenses, portfolios, savings])
 
   const filteredEntities = useMemo(() => {
     if (activeFilter === 'all') return allEntities
@@ -52,6 +55,7 @@ export default function CardsView() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredEntities.map(({ entity, type }) => {
           if (type === 'income')    return <IncomeCard    key={entity.id} income={entity}    />
+          if (type === 'debito')    return <DebitCard     key={entity.id} debit={entity}     />
           if (type === 'expense')   return <ExpenseCard   key={entity.id} expense={entity}   />
           if (type === 'credit')    return <CreditCard    key={entity.id} credit={entity}    />
           if (type === 'portfolio') return <PortfolioCard key={entity.id} portfolio={entity} />

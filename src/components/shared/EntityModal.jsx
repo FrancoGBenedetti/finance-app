@@ -81,6 +81,7 @@ function FieldRenderer({ field, value, onChange }) {
     }
     const groups = [
       { type: 'income',  icon: '💰', label: 'Ingresos',    entities: incomes,  valFn: (e) => e.amount },
+      { type: 'debito',  icon: '🏦', label: 'Débito',      entities: debits,   valFn: (e) => e.amount },
       { type: 'expense', icon: '💸', label: 'Gastos',      entities: expenses, valFn: (e) => computeExpenseTotalFromEntries(transactions, e.id) },
       { type: 'credit',  icon: '💳', label: 'Créditos',    entities: credits,  valFn: (e) => e.available },
       { type: 'savings', icon: '🐷', label: 'Ahorros',     entities: savings,  valFn: (e) => e.amount },
@@ -178,6 +179,7 @@ function EntityForm({ type, entity, onClose }) {
   const HANDLERS = {
     create: {
       income:    tx.addIncome,
+      debito:    tx.addDebito,
       expense:   tx.addExpense,
       credit:    tx.addCredit,
       portfolio: tx.addPortfolio,
@@ -185,6 +187,7 @@ function EntityForm({ type, entity, onClose }) {
     },
     update: {
       income:    (id, d) => tx.updateIncome(id, d),
+      debito:    (id, d) => tx.updateDebito(id, d),
       expense:   (id, d) => tx.updateExpense(id, d),
       credit:    (id, d) => tx.updateCredit(id, d),
       portfolio: (id, d) => tx.updatePortfolio(id, d),
