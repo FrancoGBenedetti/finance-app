@@ -38,7 +38,7 @@ export default function DetailModal({ entity, type, onClose }) {
   const expenses    = useFinanceStore((s) => s.expenses)
   const savings     = useFinanceStore((s) => s.savings)
   const {
-    addTransaction,
+    addTransaction, removeTransaction,
     removeIncome, removeDebito, removeCredit, removeExpense, removePortfolio, removeSavings,
   } = useTransactions()
 
@@ -46,6 +46,7 @@ export default function DetailModal({ entity, type, onClose }) {
   const [addForm, setAddForm]         = useState({ amount: '', sourceId: '', sourceType: '' })
   const [addError, setAddError]       = useState(null)
   const [addLoading, setAddLoading]   = useState(false)
+  const [deletingTxId, setDeletingTxId] = useState(null)
 
   useEffect(() => {
     const fn = (e) => { if (e.key === 'Escape' && !showEdit) onClose() }
@@ -116,6 +117,18 @@ export default function DetailModal({ entity, type, onClose }) {
       setAddError(err.message)
     } finally {
       setAddLoading(false)
+    }
+  }
+
+  async function handleDeleteTx(tx) {
+    if (!window.confirm(`¿Eliminar este movimiento de ${formatCurrencyCLP(tx.amount)}?`)) return
+    setDeletingTxId(tx.id)
+    try {
+      await removeTransaction(tx.id)
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setDeletingTxId(null)
     }
   }
 
@@ -409,20 +422,37 @@ export default function DetailModal({ entity, type, onClose }) {
                     {history.map((tx) => (
                       <div
                         key={tx.id}
-                        className="flex justify-between items-start bg-gray-800/40 rounded-lg px-3 py-2.5"
+                        className="flex justify-between items-center bg-gray-800/40 rounded-lg px-3 py-2.5"
                       >
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <p className="text-sm text-gray-200 font-medium tabular-nums">
-                            {type === 'expense' ? '−' : '−'}
-                            {formatCurrencyCLP(tx.amount)}
+                            −{formatCurrencyCLP(tx.amount)}
                           </p>
                           <p className="text-xs text-gray-600 mt-0.5">
                             {type === 'expense' ? getSourceName(tx) : getExpenseName(tx.expenseId)}
                           </p>
                         </div>
-                        <p className="text-xs text-gray-600 text-right shrink-0 ml-3 mt-0.5">
-                          {formatDate(tx.createdAt)}
-                        </p>
+                        <div className="flex items-center gap-2 shrink-0 ml-3">
+                          <p className="text-xs text-gray-600 text-right">
+                            {formatDate(tx.createdAt)}
+                          </p>
+                          {type === 'expense' && (
+                            <button
+                              onClick={() => handleDeleteTx(tx)}
+                              disabled={deletingTxId === tx.id}
+                              className="text-gray-600 hover:text-red-400 p-1 rounded transition-colors disabled:opacity-40"
+                              title="Eliminar movimiento"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6l-1 14H6L5 6"/>
+                                <path d="M10 11v6"/>
+                                <path d="M14 11v6"/>
+                                <path d="M9 6V4h6v2"/>
+                              </svg>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>

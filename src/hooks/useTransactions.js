@@ -12,6 +12,7 @@ import {
   computeTransactionSideEffects,
   computeTransactionReversal,
   computeExpenseDeleteReversals,
+  computeExpenseTotalFromEntries,
 } from '../utils/financialRules.js'
 
 // ─── Shared batch helper ──────────────────────────────────────────────────────
@@ -174,7 +175,7 @@ export function useTransactions() {
 
   // ── Transactions ───────────────────────────────────────────────────────────
   async function addTransaction(data) {
-    const { incomes, debits, credits, expenses } = useFinanceStore.getState()
+    const { incomes, debits, credits, expenses, transactions } = useFinanceStore.getState()
     const expense = expenses.find((e) => e.id === data.expenseId)
     if (!expense) throw new Error('Gasto no encontrado')
     const payload    = { ...data, amount: Number(data.amount) }
@@ -191,6 +192,13 @@ export function useTransactions() {
       createdAt:  serverTimestamp(),
     })
     applySourceUpdate(batch, sideEffect)
+    if (expense.budget > 0) {
+      const currentTotal = computeExpenseTotalFromEntries(transactions, expense.id)
+      const newTotal = currentTotal + payload.amount
+      if (newTotal > expense.budget) {
+        batch.update(doc(db, 'expenses', expense.id), { budget: newTotal })
+      }
+    }
     await batch.commit()
     return transRef.id
   }
